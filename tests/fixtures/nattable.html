@@ -1,0 +1,63 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" >
+    <head>
+        <title>NAT Table</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
+    </head>
+           <body>
+            <div id="content"
+><div id="content-sub">
+                <div class="first-section-header">
+                 <h1>NAT Table</h1>
+                 </div>
+                 <div class="section-content">
+<form method="post" action="/cgi-bin/nattable.ha">
+<input type="hidden" name="nonce" value="0000000000000000000000000000000000000000000000000000000000000000" />
+                 <div>
+                 <table class="table60" summary="This table displays a summary of session information.">
+                   <tr>
+                     <th scope="row" nowrap="nowrap">Total sessions available</th>
+                     <td>32767
+</td></tr>
+                   <tr>
+                      <th scope="row">Total sessions in use</th>
+                      <td>7
+</td></tr>
+                 </table>
+                 </div>
+                 <div class="scroller">
+                 <table class="grid table100" summary="Summary of nattable connections">
+                   <thead>
+                   <tr>
+                     <th scope="col">IP Family</th>
+                     <th scope="col">Protocol</th>
+                     <th scope="col">Protocol Number</th>
+                     <th scope="col">Lifetime</th>
+                     <th scope="col">TCP State</th>
+                     <th scope="col">Source Address</th>
+                     <th scope="col">Source Port</th>
+                     <th scope="col">Destination Address</th>
+                     <th scope="col">Destination Port</th>
+                     <th scope="col">NAT Source Address</th>
+                     <th scope="col">NAT Source Port</th>
+                     <th scope="col">NAT Destination Address</th>
+                     <th scope="col">NAT Destination Port</th>
+                     <th scope="col">Bidirectional</th>
+                   </tr>
+                   </thead>
+                   <tbody>
+<tr class="a"><td>ipv4</td><td>tcp</td><td>6</td><td>28799</td><td>ESTABLISHED</td><td>198.51.100.10</td><td>50158</td><td>203.0.113.20</td><td>443</td><td>198.51.100.10</td><td>50158</td><td>203.0.113.20</td><td>443</td><td>*</td></tr>
+<tr class="b"><td>ipv4</td><td>tcp</td><td>6</td><td>13</td><td>TIME_WAIT</td><td>203.0.113.20</td><td>50710</td><td>198.51.100.10</td><td>80</td><td>203.0.113.20</td><td>50710</td><td>198.51.100.10</td><td>80</td><td>*</td></tr>
+<tr class="a"><td>ipv4</td><td>tcp</td><td>6</td><td>20</td><td>SYN_SENT</td><td>203.0.113.21</td><td>37723</td><td>198.51.100.10</td><td>26440</td><td>203.0.113.21</td><td>37723</td><td>198.51.100.10</td><td>26440</td><td></td></tr>
+<tr class="b"><td>ipv4</td><td>udp</td><td>17</td><td>1</td><td>&nbsp;</td><td>198.51.100.10</td><td>33370</td><td>198.51.100.53</td><td>53</td><td>198.51.100.10</td><td>33370</td><td>198.51.100.53</td><td>53</td><td>*</td></tr>
+<tr class="a"><td>ipv4</td><td>icmp</td><td>1</td><td>9</td><td>&nbsp;</td><td>203.0.113.22</td><td>&nbsp;</td><td>198.51.100.10</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr class="b"><td>ipv6</td><td>tcp</td><td>6</td><td>28595</td><td>ESTABLISHED</td><td>2001:db8::10</td><td>62580</td><td>2001:db8::1</td><td>443</td><td>2001:db8::10</td><td>62580</td><td>2001:db8::1</td><td>443</td><td>*</td></tr>
+<tr class="a"><td>ipv6</td><td>icmpv6</td><td>58</td><td>13</td><td>&nbsp;</td><td>2001:db8::11</td><td>&nbsp;</td><td>2001:db8::1</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                   </tbody>
+                 </table>
+                 </div>
+             </form>
+                 </div>
+              </div>
+</body>
+</html>

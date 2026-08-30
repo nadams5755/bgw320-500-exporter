@@ -1,0 +1,15 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" >
+    <head>
+        <title>Login</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=windows-1252" />
+    </head>
+           <body>
+<form method="post" action="/cgi-bin/login.ha">
+<input type="hidden" name="nonce" value="deadbeef00000000000000000000000000000000000000000000000000000000" />
+<input id="password" type="password" name="password" size="20" maxlength="32" value="" autocomplete="off" />
+<input id="hashpassword" type="hidden" name="hashpassword" size="100" maxlength="100" autocomplete="off" />
+<input type="submit" name="Continue" onclick="hashpwd()" value="Continue" />
+</form>
+</body>
+</html>

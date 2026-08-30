@@ -1,4 +1,6 @@
 """bgw320-500 exporter"""
+from collections import Counter
+import hashlib
 import logging
 import os
 import re
@@ -11,6 +13,9 @@ import requests
 
 
 ROUTER_ADDR = os.getenv("ROUTER_ADDR", "dsldevice.attlocal.net")
+ACCESSCODE = os.getenv("ACCESSCODE")
+
+NONCE_RE = re.compile(r'name="nonce" value="([0-9a-f]+)"')
 
 CURRENTLY_RE = re.compile(r"^(?P<name>.+?)\s*Currently\s*(?P<value>-?\d+)$")
 THRESHOLD_CELL_RE = re.compile(r"(?P<crossed>-?\d+)\s*\(Threshold\s*(?P<threshold>-?\d+)\)")
@@ -48,6 +53,55 @@ def fetch_soup(path):
     req = requests.get(f"http://{ROUTER_ADDR}{path}", timeout=15)
     req.raise_for_status()
     return BeautifulSoup(req.text, "html.parser")
+
+
+_session = requests.Session()
+
+
+def login():
+    """Authenticate _session against the router's access-code login form.
+
+    The login form's nonce is only present once the router has already set
+    a session cookie, so the first request just establishes the cookie and
+    the second one carries the actual form.
+    """
+    nonce = None
+    for _ in range(2):
+        resp = _session.get(f"http://{ROUTER_ADDR}/cgi-bin/routerpasswd.ha", timeout=15)
+        resp.raise_for_status()
+        match = NONCE_RE.search(resp.text)
+        if match:
+            nonce = match.group(1)
+            break
+    if nonce is None:
+        raise RuntimeError("Could not find login nonce on routerpasswd.ha")
+
+    hashpassword = hashlib.md5((ACCESSCODE + nonce).encode()).hexdigest()
+    resp = _session.post(
+        f"http://{ROUTER_ADDR}/cgi-bin/login.ha",
+        data={
+            "nonce": nonce,
+            "password": "*" * len(ACCESSCODE),
+            "hashpassword": hashpassword,
+            "Continue": "Continue",
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
+
+
+def fetch_authenticated_soup(path):
+    resp = _session.get(f"http://{ROUTER_ADDR}{path}", timeout=15)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    if soup.title is not None and soup.title.string == "Login":
+        login()
+        resp = _session.get(f"http://{ROUTER_ADDR}{path}", timeout=15)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+    return soup
 
 
 def parse_device_info(soup):
@@ -125,6 +179,24 @@ def parse_lan_stats(soup):
     ]
 
 
+def parse_nat_stats(soup):
+    table = soup.find("table", summary="Summary of nattable connections")
+
+    connections = Counter()
+    for row in table.find("tbody").find_all("tr"):
+        cells = row.find_all("td")
+        ip_family = cells[0].get_text(strip=True)
+        protocol = cells[1].get_text(strip=True)
+        tcp_state = cells[4].get_text(strip=True).replace("\xa0", "")
+        connections[(ip_family, protocol, tcp_state)] += 1
+
+    return {
+        "sessions_available": int(field(soup, "Total sessions available")),
+        "sessions_in_use": int(field(soup, "Total sessions in use")),
+        "connections": connections,
+    }
+
+
 def counter_from_label(help_text, label, value):
     counter = CounterMetricFamily(help_text, label)
     counter.add_metric([], value)
@@ -144,7 +216,12 @@ class CustomCollector:
             broadband = parse_broadband_stats(fetch_soup("/cgi-bin/broadbandstatistics.ha"))
             fiber = parse_fiber_stats(fetch_soup("/cgi-bin/fiberstat.ha"))
             lan_ports = parse_lan_stats(fetch_soup("/cgi-bin/lanstatistics.ha"))
-        except (requests.RequestException, AttributeError, ValueError) as exc:
+            nat = (
+                parse_nat_stats(fetch_authenticated_soup("/cgi-bin/nattable.ha"))
+                if ACCESSCODE
+                else None
+            )
+        except (requests.RequestException, AttributeError, ValueError, RuntimeError) as exc:
             logger.error("Failed to scrape %s: %s", ROUTER_ADDR, exc)
             return
 
@@ -241,6 +318,28 @@ class CustomCollector:
         yield lan_receive_packets
         yield lan_transmit_bytes
         yield lan_transmit_packets
+
+        if nat is not None:
+            nat_sessions_available = GaugeMetricFamily(
+                "nat_sessions_available", "Total NAT sessions available"
+            )
+            nat_sessions_available.add_metric([], nat["sessions_available"])
+            yield nat_sessions_available
+
+            nat_sessions_in_use = GaugeMetricFamily(
+                "nat_sessions_in_use", "Total NAT sessions in use"
+            )
+            nat_sessions_in_use.add_metric([], nat["sessions_in_use"])
+            yield nat_sessions_in_use
+
+            nat_connections = GaugeMetricFamily(
+                "nat_connections",
+                "Current NAT connections by IP family, protocol, and TCP state",
+                labels=["ip_family", "protocol", "tcp_state"],
+            )
+            for (ip_family, protocol, tcp_state), count in nat["connections"].items():
+                nat_connections.add_metric([ip_family, protocol, tcp_state], count)
+            yield nat_connections
 
 
 REGISTRY.register(CustomCollector())

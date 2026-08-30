@@ -24,6 +24,24 @@ Environment variables:
 - `ROUTER_ADDR` — hostname/IP of the router (default `dsldevice.attlocal.net`)
 - `ADDR` — address to bind the metrics HTTP server to (default `0.0.0.0`)
 - `PORT` — port to bind the metrics HTTP server to (default `8000`)
+- `ACCESSCODE` — the router's Device Access Code, needed to collect firewall/NAT
+  connection stats (`nat_sessions_available`, `nat_sessions_in_use`,
+  `nat_connections`). If unset, these metrics are skipped and everything else
+  is collected as normal.
+
+`ACCESSCODE` is sensitive, so keep it out of your shell history and out of
+version control. A `.credentials` file (gitignored) is a convenient place to
+store it:
+
+```sh
+# .credentials
+ACCESSCODE="your-access-code"
+```
+
+```sh
+set -a && source .credentials && set +a
+ROUTER_ADDR=192.168.1.254 python app.py
+```
 
 Metrics are then available at `http://localhost:8000/metrics`.
 

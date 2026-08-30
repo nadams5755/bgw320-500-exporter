@@ -1,3 +1,4 @@
+import hashlib
 import os
 from pathlib import Path
 
@@ -10,6 +11,10 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def load(name):
     return BeautifulSoup((FIXTURES / name).read_text(), "html.parser")
+
+
+def load_text(name):
+    return (FIXTURES / name).read_text()
 
 
 def test_parse_uptime_str_plain_seconds():
@@ -113,3 +118,74 @@ def test_collect_logs_and_skips_on_scrape_failure(monkeypatch, caplog):
     monkeypatch.setattr(app, "fetch_soup", fail)
     metrics = list(app.CustomCollector().collect())
     assert metrics == []
+
+
+def test_parse_nat_stats():
+    nat = app.parse_nat_stats(load("nattable.html"))
+    assert nat["sessions_available"] == 32767
+    assert nat["sessions_in_use"] == 7
+    assert nat["connections"][("ipv4", "tcp", "ESTABLISHED")] == 1
+    assert nat["connections"][("ipv4", "tcp", "TIME_WAIT")] == 1
+    assert nat["connections"][("ipv4", "tcp", "SYN_SENT")] == 1
+    assert nat["connections"][("ipv4", "udp", "")] == 1
+    assert nat["connections"][("ipv4", "icmp", "")] == 1
+    assert nat["connections"][("ipv6", "tcp", "ESTABLISHED")] == 1
+    assert nat["connections"][("ipv6", "icmpv6", "")] == 1
+    assert sum(nat["connections"].values()) == 7
+
+
+class FakeResponse:
+    def __init__(self, text):
+        self.text = text
+
+    def raise_for_status(self):
+        pass
+
+
+def test_login_hashes_access_code_with_nonce(monkeypatch):
+    monkeypatch.setattr(app, "ACCESSCODE", "s3cret")
+
+    posted = {}
+
+    def fake_get(url, timeout):
+        return FakeResponse(load_text("login.html"))
+
+    def fake_post(url, data, timeout):
+        posted["url"] = url
+        posted["data"] = data
+        return FakeResponse("")
+
+    monkeypatch.setattr(app._session, "get", fake_get)
+    monkeypatch.setattr(app._session, "post", fake_post)
+
+    app.login()
+
+    expected_hash = hashlib.md5(b"s3cret" + b"deadbeef00000000000000000000000000000000000000000000000000000000").hexdigest()
+    assert posted["url"].endswith("/cgi-bin/login.ha")
+    assert posted["data"]["nonce"] == "deadbeef00000000000000000000000000000000000000000000000000000000"
+    assert posted["data"]["hashpassword"] == expected_hash
+    assert posted["data"]["password"] == "*" * len("s3cret")
+
+
+def test_fetch_authenticated_soup_logs_in_when_session_expired(monkeypatch):
+    monkeypatch.setattr(app, "ACCESSCODE", "s3cret")
+
+    responses = iter(
+        [load_text("login.html"), load_text("nattable.html")]
+    )
+
+    def fake_get(url, timeout):
+        return FakeResponse(next(responses))
+
+    login_called = []
+
+    def fake_login():
+        login_called.append(True)
+
+    monkeypatch.setattr(app._session, "get", fake_get)
+    monkeypatch.setattr(app, "login", fake_login)
+
+    soup = app.fetch_authenticated_soup("/cgi-bin/nattable.ha")
+
+    assert login_called == [True]
+    assert soup.title.string == "NAT Table"

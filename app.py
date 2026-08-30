@@ -320,26 +320,26 @@ class CustomCollector:
         yield lan_transmit_packets
 
         if nat is not None:
-            nat_sessions_available = GaugeMetricFamily(
-                "nat_sessions_available", "Total NAT sessions available"
+            connection_sessions_available = GaugeMetricFamily(
+                "connection_sessions_available", "Total connection sessions available"
             )
-            nat_sessions_available.add_metric([], nat["sessions_available"])
-            yield nat_sessions_available
+            connection_sessions_available.add_metric([], nat["sessions_available"])
+            yield connection_sessions_available
 
-            nat_sessions_in_use = GaugeMetricFamily(
-                "nat_sessions_in_use", "Total NAT sessions in use"
+            connection_sessions_in_use = GaugeMetricFamily(
+                "connection_sessions_in_use", "Total connection sessions in use"
             )
-            nat_sessions_in_use.add_metric([], nat["sessions_in_use"])
-            yield nat_sessions_in_use
+            connection_sessions_in_use.add_metric([], nat["sessions_in_use"])
+            yield connection_sessions_in_use
 
-            nat_connections = GaugeMetricFamily(
-                "nat_connections",
-                "Current NAT connections by IP family, protocol, and TCP state",
+            connections = GaugeMetricFamily(
+                "connections",
+                "Current connections by IP family, protocol, and TCP state",
                 labels=["ip_family", "protocol", "tcp_state"],
             )
             for (ip_family, protocol, tcp_state), count in nat["connections"].items():
-                nat_connections.add_metric([ip_family, protocol, tcp_state], count)
-            yield nat_connections
+                connections.add_metric([ip_family, protocol, tcp_state], count)
+            yield connections
 
 
 REGISTRY.register(CustomCollector())

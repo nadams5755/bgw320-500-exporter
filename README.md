@@ -25,8 +25,8 @@ Environment variables:
 - `ADDR` — address to bind the metrics HTTP server to (default `0.0.0.0`)
 - `PORT` — port to bind the metrics HTTP server to (default `8000`)
 - `ACCESSCODE` — the router's Device Access Code, needed to collect firewall/NAT
-  connection stats (`nat_sessions_available`, `nat_sessions_in_use`,
-  `nat_connections`). If unset, these metrics are skipped and everything else
+  connection stats (`connection_sessions_available`, `connection_sessions_in_use`,
+  `connections`). If unset, these metrics are skipped and everything else
   is collected as normal.
 
 `ACCESSCODE` is sensitive, so keep it out of your shell history and out of
